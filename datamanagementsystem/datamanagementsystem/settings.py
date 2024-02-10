@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,6 +26,10 @@ SECRET_KEY = 'django-insecure-@yd_hr#a#hm=(pu39ls-x&#gs_!6s1*v)7=&3rblj20yjk5hhq
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1)
+}
 
 
 # Application definition
@@ -63,12 +67,6 @@ SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,
 }
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        #'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-}
-
 
 ROOT_URLCONF = 'datamanagementsystem.urls'
 
@@ -100,7 +98,7 @@ DATABASES = {
         'NAME': 'mydatabase',
         'USER': 'mydatabaseuser',
         'PASSWORD': 'mypassword',
-        'HOST': 'db',  # This is the service name defined in the Docker Compose file
+        'HOST': 'db',
         'PORT': '5432',
     }
 }

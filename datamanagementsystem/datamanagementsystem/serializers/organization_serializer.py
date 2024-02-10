@@ -6,4 +6,4 @@ class OrganizationSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
     class Meta:
         model = Organization
-        fields = ('id', 'name', 'address')
+        fields = '__all__'

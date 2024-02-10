@@ -28,7 +28,10 @@ from rest_framework_simplejwt.views import (
 from datamanagementsystem.views.user_registeration import UserRegistrationAPIView
 from datamanagementsystem.views.organization_view import OrganizationAPIView
 from datamanagementsystem.views.token_view import TokenView
-from datamanagementsystem.views.schema_view import SchemaAPIView
+from datamanagementsystem.views.entity_view import EntityAPIView
+from datamanagementsystem.views.property_view import PropertyAPIView
+from rest_framework.routers import DefaultRouter
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -39,6 +42,9 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
+
+router = DefaultRouter()
+router.register(r'property', PropertyAPIView, basename='property')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -51,5 +57,11 @@ urlpatterns = [
 
     path('api/organization/', OrganizationAPIView.as_view(), name="create-organization"),
 
-    path('api/schema/create', SchemaAPIView.as_view(), name="schema-create")
+    path('api/entity/', EntityAPIView.as_view(), name="entity"),
+
+    path('api/entity/', include(router.urls)),
+
+    # path('api/entity/property', PropertyAPIView.as_view(), name="property-create"),
+    # path('api/entity/property/rename', PropertyAPIView.as_view({'put': 'update_name'}), name="property-update-name"),
+    # path('api/entity/property/update-type', PropertyAPIView.as_view({'put': 'update_type'}), name="property-update-type")
 ]
