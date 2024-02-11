@@ -3,6 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.renderers import JSONRenderer
+from ..exceptions.missing_default_value_exception import MissingDefaultValueException
 
 
 def ErrorResponse(status, data=None):
@@ -25,5 +26,7 @@ class ExceptionMiddleware:
         print(traceback.format_exc())
         if isinstance(exception, ObjectDoesNotExist):
            return ErrorResponse(status=status.HTTP_404_NOT_FOUND)
+        if isinstance(exception , MissingDefaultValueException):
+            return ErrorResponse(status=status.HTTP_400_BAD_REQUEST, data='equired properties require a default value.')
         return ErrorResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data='An Unexpected Error Has Occured.')
     

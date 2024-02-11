@@ -3,27 +3,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from ..helpers.sql_helper import create_table, rename_table, delete_table
 from ..serializers.entity_serializer import EntitySerializer, RenameEntitySerializer, DeleteEntitySerializer, GetEntitySerializer
 from ..helpers.schema_helper import get_tenant_schema, get_organization_id
-from ..models.entity import Entity
-from ..models.property import Property
-from django.contrib.postgres.search import SearchVector
 from drf_yasg import openapi
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
-
+from ..services.entity_service import EntityService
 
 search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
                              description="search by entity or property name",
                              type=openapi.TYPE_STRING)
 
+entity_service = EntityService()
+
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_entity(request, pk, format=None):
-    entityObject = Entity.objects.prefetch_related('properties').get(pk=pk)
-    entity = GetEntitySerializer(entityObject)
+    entity_object = entity_service.get(pk)
+    entity = GetEntitySerializer(entity_object)
     return Response(entity.validated_data, status=status.HTTP_200_OK)
 
 class EntityAPIView(APIView):
@@ -32,30 +30,18 @@ class EntityAPIView(APIView):
 
     @swagger_auto_schema(manual_parameters=[search_text])
     def get(self, request):
-        if('search_text' in request.query_params):
-            search_text = request.query_params['search_text']
-            print(search_text)
-            entityObjects = Entity.objects.prefetch_related('properties').annotate(
-            search=SearchVector('entity_name', 'properties__property_name')
-            ).filter(search=search_text).all()
-        else:
-            entityObjects = Entity.objects.prefetch_related('properties').all()
-        entities = GetEntitySerializer(entityObjects, many=True)
+        organization_id = get_organization_id(request)
+        entity_objects = entity_service.get_all(organization_id, request.query_params.get('search_text'))
+        entities = GetEntitySerializer(entity_objects, many=True)
         return Response(entities.data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(request_body=EntitySerializer)
     def post(self, request):
         entity = EntitySerializer(data=request.data)
-        schema = get_tenant_schema(request)
         if(entity.is_valid()):
-            for new_property in entity.validated_data['properties']:
-                if(new_property["required"] and new_property.get('default_value') is None):
-                    return Response('Required properties require a default value.', status=status.HTTP_400_BAD_REQUEST)
-            create_table(schema, entity.validated_data)
             organization_id = get_organization_id(request)
-            new_entity = Entity.objects.create(entity_name=entity.validated_data['entity_name'], organization_id=organization_id)
-            for new_property in entity.validated_data['properties']:
-                Property.objects.create(entity=new_entity, **new_property)
+            schema = get_tenant_schema(request)
+            entity_service.add(organization_id, schema, entity.validated_data)
             return Response(entity.validated_data, status=status.HTTP_201_CREATED)
         return Response(entity.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -64,24 +50,19 @@ class EntityAPIView(APIView):
         renameEntityModel = RenameEntitySerializer(data=request.data)
         schema = get_tenant_schema(request)
         if(renameEntityModel.is_valid()):
-            data = renameEntityModel.validated_data
-            entity = Entity.objects.get(pk=data['entity_id'])
-            rename_table(schema, entity.entity_name, data['new_entity_name'])
-            entity.entity_name = data['new_entity_name']
-            entity.save()
+            validated_data = renameEntityModel.validated_data
+            entity_service.rename(schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
         return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(request_body=DeleteEntitySerializer)
     def delete(self, request):
-        renameEntityModel = DeleteEntitySerializer(data=request.data)
+        deleteEntityModel = DeleteEntitySerializer(data=request.data)
         schema = get_tenant_schema(request)
-        if(renameEntityModel.is_valid()):
-            data = renameEntityModel.validated_data
-            entity = Entity.objects.get(pk=data['entity_id'])
-            delete_table(schema, entity.entity_name)
-            entity.delete()
+        if(deleteEntityModel.is_valid()):
+            validated_data = deleteEntityModel.validated_data
+            entity_service.delete(schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
-        return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(deleteEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
 
             

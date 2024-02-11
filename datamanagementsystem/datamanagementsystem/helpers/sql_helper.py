@@ -51,10 +51,17 @@ def remove_column(schema_name, table_name, column_name):
     execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" DROP COLUMN "{sanitize(column_name)}"')
 
 def update_column_name(schema_name, table_name, old_column_name, new_column_name):
-    execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" RENAME COLUMN "{sanitize(old_column_name)}" TO "{sanitize(new_column_name)}"', old_column_name, new_column_name)
+    execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" RENAME COLUMN "{sanitize(old_column_name)}" TO "{sanitize(new_column_name)}"')
 
-def update_column_type(schema_name, table_name, column_name, new_column_type_id):
-    execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ALTER COLUMN "{sanitize(column_name)}" TYPE {property_types[str(new_column_type_id)]}', column_name, new_column_type_id)
+def update_column_type(schema_name, table_name, column_name, new_column_type_id, required, default_value):
+    params = []
+    query = f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ALTER COLUMN "{sanitize(column_name)}" TYPE {property_types[str(new_column_type_id)]}'
+    if required:
+        query += ' not null default %s'
+        params.append(default_value)
+    else:
+        query += ' null'
+    execute_sql(query, *params)
 
 def get_records(schema_name, table_name, skip=None, take=None, search_text=None):
     params = []

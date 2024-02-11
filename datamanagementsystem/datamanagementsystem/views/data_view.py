@@ -1,16 +1,13 @@
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from ..serializers.data_serializer import DataSerializer, UpdateDataSerializer
-from ..helpers.sql_helper import get_records, get_record, insert_records, delete_record, delete_all_records, update_record
 from drf_yasg import openapi
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from ..helpers.schema_helper import get_tenant_schema
-from ..models.entity import Entity
-from ..models.property import Property
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from ..services.data_service import DataService
 
 skip = openapi.Parameter('skip', openapi.IN_QUERY,
                              description="skip number of records",
@@ -24,6 +21,8 @@ search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
                              description="search by all property values",
                              type=openapi.TYPE_STRING)
 
+data_service = DataService()
+
 
 @swagger_auto_schema(manual_parameters=[skip, take, search_text], method='GET')
 @api_view(['GET'])
@@ -34,8 +33,7 @@ def get_all_data(request, entity_id):
     take = request.query_params.get('take')
     search_text = request.query_params.get('search_text')
     schema = get_tenant_schema(request)
-    entity = Entity.objects.get(pk=entity_id)
-    data = get_records(schema, entity.entity_name, skip, take, search_text)
+    data = data_service.get_all(schema, entity_id, skip, take, search_text)
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
@@ -43,8 +41,7 @@ def get_all_data(request, entity_id):
 @permission_classes([IsAuthenticated])
 def get_single(request, entity_id, id):
     schema = get_tenant_schema(request)
-    entity = Entity.objects.get(pk=entity_id)
-    data = get_record(schema, entity.entity_name, id)
+    data = data_service.get(schema, entity_id, id)
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
@@ -52,18 +49,16 @@ def get_single(request, entity_id, id):
 @permission_classes([IsAuthenticated])
 def delete_single(request, entity_id, id):
     schema = get_tenant_schema(request)
-    entity = Entity.objects.get(pk=entity_id)
-    data = delete_record(schema, entity.entity_name, id)
-    return Response(data, status=status.HTTP_200_OK)
+    data_service.delete(schema, entity_id, id)
+    return Response(status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def delete_all(request, entity_id):
     schema = get_tenant_schema(request)
-    entity = Entity.objects.get(pk=entity_id)
-    data = delete_all_records(schema, entity.entity_name)
-    return Response(data, status=status.HTTP_200_OK)
+    data_service.delete_all(schema, entity_id)
+    return Response(status=status.HTTP_200_OK)
 
 @swagger_auto_schema(request_body=DataSerializer, method='POST')
 @api_view(['POST'])
@@ -73,13 +68,7 @@ def insert_data(request, entity_id):
     body = DataSerializer(data=request.data)
     if body.is_valid():
         schema = get_tenant_schema(request)
-        entity = Entity.objects.get(pk=entity_id)
-        records = body.validated_data['records']
-        data = []
-        for dictionary in records:
-            properties = Property.objects.filter(id__in=dictionary.keys()).all()
-            data.append(dict([(property.property_name, dictionary[str(property.pk)]) for property in properties]))
-        insert_records(schema, entity.entity_name, data)
+        data_service.add(schema, entity_id, body.validated_data)
         return Response(body.validated_data, status=status.HTTP_201_CREATED)
     return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -91,10 +80,6 @@ def update_data(request, entity_id, id):
     body = UpdateDataSerializer(data=request.data)
     if body.is_valid():
         schema = get_tenant_schema(request)
-        entity = Entity.objects.get(pk=entity_id)
-        record = body.validated_data['record']
-        properties = Property.objects.filter(id__in=record.keys()).all()
-        data = dict([(property.property_name, record[str(property.pk)]) for property in properties])
-        update_record(schema, entity.entity_name, id, data)
+        data_service.update(schema, entity_id, id, body.validated_data)
         return Response(body.validated_data, status=status.HTTP_201_CREATED)
     return Response(status=status.HTTP_400_BAD_REQUEST)
