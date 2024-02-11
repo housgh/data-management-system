@@ -28,8 +28,9 @@ from rest_framework_simplejwt.views import (
 from datamanagementsystem.views.user_registeration import UserRegistrationAPIView
 from datamanagementsystem.views.organization_view import OrganizationAPIView
 from datamanagementsystem.views.token_view import TokenView
-from datamanagementsystem.views.entity_view import EntityAPIView
+from datamanagementsystem.views.entity_view import EntityAPIView, get_entity
 from datamanagementsystem.views.property_view import PropertyAPIView
+from datamanagementsystem.views.data_view import get_all_data, get_single
 from rest_framework.routers import DefaultRouter
 
 
@@ -57,11 +58,10 @@ urlpatterns = [
 
     path('api/organization/', OrganizationAPIView.as_view(), name="create-organization"),
 
+    path('api/entity/<int:pk>/', get_entity),
     path('api/entity/', EntityAPIView.as_view(), name="entity"),
-
     path('api/entity/', include(router.urls)),
 
-    # path('api/entity/property', PropertyAPIView.as_view(), name="property-create"),
-    # path('api/entity/property/rename', PropertyAPIView.as_view({'put': 'update_name'}), name="property-update-name"),
-    # path('api/entity/property/update-type', PropertyAPIView.as_view({'put': 'update_type'}), name="property-update-type")
+    path('api/data/<str:entity_name>', get_all_data, name="data"),
+    path('api/data/single/<str:entity_name>/<int:id>', get_single, name="single")
 ]

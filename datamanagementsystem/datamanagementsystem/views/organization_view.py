@@ -15,8 +15,8 @@ class OrganizationAPIView(APIView):
     def post(self, request):
         organization = OrganizationSerializer(data=request.data)
         if organization.is_valid():
-            organization.save()
             create_db_schema(organization.data['name'])
+            organization.save()
             return Response(organization.data, status=status.HTTP_201_CREATED)
         return Response(organization.errors, status=status.HTTP_400_BAD_REQUEST)
         
