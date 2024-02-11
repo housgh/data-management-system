@@ -23,7 +23,7 @@ def get_entity(request, pk, format=None):
     try:
         entityObject = Entity.objects.prefetch_related('properties').get(pk=pk)
         entity = GetEntitySerializer(entityObject)
-        return Response(entity.data, status=status.HTTP_200_OK)
+        return Response(entity.validated_data, status=status.HTTP_200_OK)
     except Entity.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -49,12 +49,12 @@ class EntityAPIView(APIView):
             entity = EntitySerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(entity.is_valid()):
-                create_table(schema, entity.data)
+                create_table(schema, entity.validated_data)
                 organization_id = get_organization_id(request)
-                new_entity = Entity.objects.create(entity_name=entity.data['entity_name'], organization_id=organization_id)
-                for new_property in entity.data['properties']:
+                new_entity = Entity.objects.create(entity_name=entity.validated_data['entity_name'], organization_id=organization_id)
+                for new_property in entity.validated_data['properties']:
                     Property.objects.create(entity=new_entity, **new_property)
-                return Response(entity.data, status=status.HTTP_201_CREATED)
+                return Response(entity.validated_data, status=status.HTTP_201_CREATED)
             return Response(entity.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
             print(traceback.format_exc())
@@ -66,7 +66,7 @@ class EntityAPIView(APIView):
             renameEntityModel = RenameEntitySerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(renameEntityModel.is_valid()):
-                data = renameEntityModel.data
+                data = renameEntityModel.validated_data
                 entity = Entity.objects.get(pk=data['entity_id'])
                 rename_table(schema, entity.entity_name, data['new_entity_name'])
                 entity.entity_name = data['new_entity_name']
@@ -83,7 +83,7 @@ class EntityAPIView(APIView):
             renameEntityModel = DeleteEntitySerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(renameEntityModel.is_valid()):
-                data = renameEntityModel.data
+                data = renameEntityModel.validated_data
                 entity = Entity.objects.get(pk=data['entity_id'])
                 delete_table(schema, entity.entity_name)
                 entity.delete()

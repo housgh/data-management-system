@@ -24,10 +24,10 @@ class PropertyAPIView(viewsets.ViewSet):
             entity_property = PropertySerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(entity_property.is_valid()):
-                add_column(schema, entity_property.data)
+                add_column(schema, entity_property.validated_data)
                 entity_property.save()
-                return Response(entity_property.data, status=status.HTTP_201_CREATED)
-            return Response(entity_property.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(entity_property.validated_data, status=status.HTTP_201_CREATED)
+            return Response(entity_property.validated_datas, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(repr(e))
             return Response('An Error Has Occured.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -39,7 +39,7 @@ class PropertyAPIView(viewsets.ViewSet):
             update_property_name_model = UpdatePropertyNameSerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(update_property_name_model.is_valid()):
-                data = update_property_name_model.data
+                data = update_property_name_model.validated_data
                 entity = Entity.objects.get(pk=data['entity_id'])
                 db_property = Property.objects.get(pk=data['property_id'])
                 update_column_name(schema, entity.entity_name, db_property.property_name, data['new_property_name'])
@@ -58,7 +58,7 @@ class PropertyAPIView(viewsets.ViewSet):
             update_property_type_model = UpdatePropertyTypeSerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(update_property_type_model.is_valid()):
-                data = update_property_type_model.data
+                data = update_property_type_model.validated_data
                 entity = Entity.objects.get(pk=data['entity_id'])
                 db_property = Property.objects.get(pk=data['property_id'])
                 update_column_type(schema, entity.entity_name, db_property.property_name, data['new_property_type'])
@@ -77,7 +77,7 @@ class PropertyAPIView(viewsets.ViewSet):
             renameEntityModel = DeletePropertySerializer(data=request.data)
             schema = get_tenant_schema(request)
             if(renameEntityModel.is_valid()):
-                data = renameEntityModel.data
+                data = renameEntityModel.validated_data
                 entity = Entity.objects.get(pk=data['entity_id'])
                 db_property = Property.objects.get(pk=data['property_id'])
                 remove_column(schema, entity.entity_name, db_property.property_name)

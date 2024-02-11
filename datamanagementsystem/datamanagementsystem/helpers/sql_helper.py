@@ -1,13 +1,13 @@
 from django.db import connection
 
 def create_db_schema(schema_name):
-    execute_sql('CREATE SCHEMA %s', schema_name)
+    execute_sql(f'CREATE SCHEMA "{sanitize(schema_name)}"')
 
 def create_table(schema_name, table):
     table_name = table['entity_name']
     params = []
     query = f'CREATE TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ('
-    query += '\nid int primary key'
+    query += '\nid SERIAL PRIMARY KEY'
     if(len(table['properties']) != 0):
         query = query + ','
     for index, db_property in enumerate(table['properties']):
@@ -62,6 +62,43 @@ def get_record(schema_name, table_name, id):
     query = f'SELECT * FROM "{sanitize(schema_name)}"."{sanitize(table_name)}" WHERE id=%s'
     return execute_get_one(query, id)
 
+def insert_records(schema_name, table_name, data):
+    query = f'INSERT INTO "{sanitize(schema_name)}"."{sanitize(table_name)}" ('
+    properties = data[0].keys()
+    query += ", ".join([f'"{sanitize(db_property)}"' for db_property in properties])
+    query += ') VALUES '
+    value_strings = []
+    params = []
+    for record in data:
+        values = ["%s" for _ in range(0, len(properties))]
+        params.extend([f"{record[prop]}" if isinstance(record[prop], str) else str(record[prop]) for prop in properties])
+        value_strings.append("(" + ", ".join(values) + ")")
+    query += ", ".join(value_strings)
+    query += ";"
+    print(query)
+    execute_sql(query, *params)
+
+def update_record(schema_name, table_name, id, data):
+    params = []
+    query = f'UPDATE "{sanitize(schema_name)}"."{sanitize(table_name)}" SET '
+    for index, key in enumerate(data.keys()):
+        query += f'{sanitize(key)} = %s '
+        if(index != len(data.keys()) - 1):
+            query += ','
+        params.append(data[key])
+    query += 'WHERE id = %s'
+    params.append(id)
+    execute_sql(query, *params)
+
+
+def delete_record(schema_name, table_name, id):
+    query = f'DELETE FROM "{sanitize(schema_name)}"."{sanitize(table_name)}" WHERE id=%s'
+    execute_sql(query, id)
+
+def delete_all_records(schema_name, table_name):
+    query = f'DELETE FROM "{sanitize(schema_name)}"."{sanitize(table_name)}"'
+    execute_sql(query)
+
 def execute_sql(sql, *arguments):
     with connection.cursor() as cursor:
         cursor.execute(sql, arguments)
@@ -79,7 +116,5 @@ def execute_get_one(query, *arguments):
         return dict(zip(columns, cursor.fetchone()))
     
 def sanitize(identifier):
-    # Only allow alphanumeric characters, underscores, and dots
-    # You may adjust this regex pattern based on your specific requirements
     import re
     return re.sub(r'[^\w.]', '', identifier)
