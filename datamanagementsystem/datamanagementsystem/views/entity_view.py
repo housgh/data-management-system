@@ -20,12 +20,9 @@ search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
 
 @api_view(['GET'])
 def get_entity(request, pk, format=None):
-    try:
-        entityObject = Entity.objects.prefetch_related('properties').get(pk=pk)
-        entity = GetEntitySerializer(entityObject)
-        return Response(entity.validated_data, status=status.HTTP_200_OK)
-    except Entity.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    entityObject = Entity.objects.prefetch_related('properties').get(pk=pk)
+    entity = GetEntitySerializer(entityObject)
+    return Response(entity.validated_data, status=status.HTTP_200_OK)
 
 class EntityAPIView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -45,52 +42,40 @@ class EntityAPIView(APIView):
 
     @swagger_auto_schema(request_body=EntitySerializer)
     def post(self, request):
-        try:
-            entity = EntitySerializer(data=request.data)
-            schema = get_tenant_schema(request)
-            if(entity.is_valid()):
-                create_table(schema, entity.validated_data)
-                organization_id = get_organization_id(request)
-                new_entity = Entity.objects.create(entity_name=entity.validated_data['entity_name'], organization_id=organization_id)
-                for new_property in entity.validated_data['properties']:
-                    Property.objects.create(entity=new_entity, **new_property)
-                return Response(entity.validated_data, status=status.HTTP_201_CREATED)
-            return Response(entity.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            print(traceback.format_exc())
-            return Response('An Error Has Occured.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        entity = EntitySerializer(data=request.data)
+        schema = get_tenant_schema(request)
+        if(entity.is_valid()):
+            create_table(schema, entity.validated_data)
+            organization_id = get_organization_id(request)
+            new_entity = Entity.objects.create(entity_name=entity.validated_data['entity_name'], organization_id=organization_id)
+            for new_property in entity.validated_data['properties']:
+                Property.objects.create(entity=new_entity, **new_property)
+            return Response(entity.validated_data, status=status.HTTP_201_CREATED)
+        return Response(entity.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(request_body=RenameEntitySerializer)
     def put(self, request):
-        try:
-            renameEntityModel = RenameEntitySerializer(data=request.data)
-            schema = get_tenant_schema(request)
-            if(renameEntityModel.is_valid()):
-                data = renameEntityModel.validated_data
-                entity = Entity.objects.get(pk=data['entity_id'])
-                rename_table(schema, entity.entity_name, data['new_entity_name'])
-                entity.entity_name = data['new_entity_name']
-                entity.save()
-                return Response(None, status=status.HTTP_200_OK)
-            return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(repr(e))
-            return Response('An Error Has Occured.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        renameEntityModel = RenameEntitySerializer(data=request.data)
+        schema = get_tenant_schema(request)
+        if(renameEntityModel.is_valid()):
+            data = renameEntityModel.validated_data
+            entity = Entity.objects.get(pk=data['entity_id'])
+            rename_table(schema, entity.entity_name, data['new_entity_name'])
+            entity.entity_name = data['new_entity_name']
+            entity.save()
+            return Response(None, status=status.HTTP_200_OK)
+        return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(request_body=DeleteEntitySerializer)
     def delete(self, request):
-        try:
-            renameEntityModel = DeleteEntitySerializer(data=request.data)
-            schema = get_tenant_schema(request)
-            if(renameEntityModel.is_valid()):
-                data = renameEntityModel.validated_data
-                entity = Entity.objects.get(pk=data['entity_id'])
-                delete_table(schema, entity.entity_name)
-                entity.delete()
-                return Response(None, status=status.HTTP_200_OK)
-            return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(repr(e))
-            return Response('An Error Has Occured.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        renameEntityModel = DeleteEntitySerializer(data=request.data)
+        schema = get_tenant_schema(request)
+        if(renameEntityModel.is_valid()):
+            data = renameEntityModel.validated_data
+            entity = Entity.objects.get(pk=data['entity_id'])
+            delete_table(schema, entity.entity_name)
+            entity.delete()
+            return Response(None, status=status.HTTP_200_OK)
+        return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
 
             
