@@ -1,0 +1,3 @@
+
+class MissingDefaultValueException(Exception):
+    pass
