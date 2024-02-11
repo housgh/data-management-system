@@ -5,10 +5,12 @@ from drf_yasg.utils import swagger_auto_schema
 from ..serializers.data_serializer import DataSerializer, UpdateDataSerializer
 from ..helpers.sql_helper import get_records, get_record, insert_records, delete_record, delete_all_records, update_record
 from drf_yasg import openapi
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from ..helpers.schema_helper import get_tenant_schema
 from ..models.entity import Entity
 from ..models.property import Property
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 skip = openapi.Parameter('skip', openapi.IN_QUERY,
                              description="skip number of records",
@@ -25,6 +27,8 @@ search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
 
 @swagger_auto_schema(manual_parameters=[skip, take, search_text], method='GET')
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def get_all_data(request, entity_id):
     skip = request.query_params.get('skip')
     take = request.query_params.get('take')
@@ -35,6 +39,8 @@ def get_all_data(request, entity_id):
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def get_single(request, entity_id, id):
     schema = get_tenant_schema(request)
     entity = Entity.objects.get(pk=entity_id)
@@ -42,6 +48,8 @@ def get_single(request, entity_id, id):
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def delete_single(request, entity_id, id):
     schema = get_tenant_schema(request)
     entity = Entity.objects.get(pk=entity_id)
@@ -49,6 +57,8 @@ def delete_single(request, entity_id, id):
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def delete_all(request, entity_id):
     schema = get_tenant_schema(request)
     entity = Entity.objects.get(pk=entity_id)
@@ -57,6 +67,8 @@ def delete_all(request, entity_id):
 
 @swagger_auto_schema(request_body=DataSerializer, method='POST')
 @api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def insert_data(request, entity_id):
     body = DataSerializer(data=request.data)
     if body.is_valid():
@@ -73,6 +85,8 @@ def insert_data(request, entity_id):
 
 @swagger_auto_schema(request_body=UpdateDataSerializer, method='PUT')
 @api_view(['PUT'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def update_data(request, entity_id, id):
     body = UpdateDataSerializer(data=request.data)
     if body.is_valid():

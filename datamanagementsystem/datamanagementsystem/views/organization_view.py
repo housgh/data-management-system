@@ -7,7 +7,6 @@ from drf_yasg.utils import swagger_auto_schema
 from ..helpers.sql_helper import create_db_schema
 from rest_framework.permissions import AllowAny
 
-
 class OrganizationAPIView(APIView):
     permission_classes = [AllowAny]
 

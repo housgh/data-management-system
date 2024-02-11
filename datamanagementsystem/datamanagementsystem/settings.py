@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'datamanagementsystem.middlewares.exception_middleware.ExceptionMiddleware'
+    'datamanagementsystem.middlewares.exception_middleware.ExceptionMiddleware',
 ]
 
 SWAGGER_SETTINGS = {
@@ -65,8 +65,11 @@ SWAGGER_SETTINGS = {
             "in": "header",
         }
     },
-    "USE_SESSION_AUTH": False,
+    "USE_SESSION_AUTH": True,
 }
+
+LOGIN_URL = 'login'
+LOGOUT_URL = 'logout'
 
 
 ROOT_URLCONF = 'datamanagementsystem.urls'

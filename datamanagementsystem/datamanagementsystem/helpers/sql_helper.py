@@ -1,5 +1,14 @@
 from django.db import connection
 
+
+property_types = {
+    '1': 'varchar',
+    '2': 'int',
+    '3': 'decimal',
+    '4': 'boolean',
+    '5': 'date'
+}
+
 def create_db_schema(schema_name):
     execute_sql(f'CREATE SCHEMA "{sanitize(schema_name)}"')
 
@@ -12,10 +21,11 @@ def create_table(schema_name, table):
         query = query + ','
     for index, db_property in enumerate(table['properties']):
         property_name = db_property['property_name']
-        property_type = db_property['property_type']
+        property_type = property_types[str(db_property['property_type_id'])]
         query += f'\n"{sanitize(property_name)}" {property_type}'
         if db_property['required']:
-            query += ' not null'
+            query += ' not null default %s'
+            params.append(db_property['default_value'])
         if index != len(table['properties']) - 1:
             query += ','
     query += '\n)'
@@ -28,12 +38,14 @@ def delete_table(schema_name, table_name):
     execute_sql(f'DROP TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}"') 
 
 def add_column(schema_name, table_name, column):
-    column_name = column['column_name']
-    column_type = column['column_type']
+    params = []
+    column_name = column['property_name']
+    column_type = property_types[str(column['property_type_id'])]
     query = f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ADD "{sanitize(column_name)}" {column_type}'
     if(column['required']):
-        query = query + ' not null'
-    execute_sql(query)
+        query = query + ' not null default %s'
+        params.append(column['default_value'])
+    execute_sql(query *params)
 
 def remove_column(schema_name, table_name, column_name):
     execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" DROP COLUMN "{sanitize(column_name)}"')
@@ -41,8 +53,8 @@ def remove_column(schema_name, table_name, column_name):
 def update_column_name(schema_name, table_name, old_column_name, new_column_name):
     execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" RENAME COLUMN "{sanitize(old_column_name)}" TO "{sanitize(new_column_name)}"', old_column_name, new_column_name)
 
-def update_column_type(schema_name, table_name, column_name, new_column_type):
-    execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ALTER COLUMN "{sanitize(column_name)}" TYPE {new_column_type}', column_name, new_column_type)
+def update_column_type(schema_name, table_name, column_name, new_column_type_id):
+    execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ALTER COLUMN "{sanitize(column_name)}" TYPE {property_types[str(new_column_type_id)]}', column_name, new_column_type_id)
 
 def get_records(schema_name, table_name, skip=None, take=None, search_text=None):
     params = []

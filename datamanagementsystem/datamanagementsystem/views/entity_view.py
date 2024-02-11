@@ -8,10 +8,10 @@ from ..serializers.entity_serializer import EntitySerializer, RenameEntitySerial
 from ..helpers.schema_helper import get_tenant_schema, get_organization_id
 from ..models.entity import Entity
 from ..models.property import Property
-import traceback
 from django.contrib.postgres.search import SearchVector
 from drf_yasg import openapi
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 
 search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
@@ -19,6 +19,8 @@ search_text = openapi.Parameter('search_text', openapi.IN_QUERY,
                              type=openapi.TYPE_STRING)
 
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def get_entity(request, pk, format=None):
     entityObject = Entity.objects.prefetch_related('properties').get(pk=pk)
     entity = GetEntitySerializer(entityObject)
@@ -26,6 +28,7 @@ def get_entity(request, pk, format=None):
 
 class EntityAPIView(APIView):
     authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(manual_parameters=[search_text])
     def get(self, request):
@@ -45,6 +48,9 @@ class EntityAPIView(APIView):
         entity = EntitySerializer(data=request.data)
         schema = get_tenant_schema(request)
         if(entity.is_valid()):
+            for new_property in entity.validated_data['properties']:
+                if(new_property["required"] and new_property.get('default_value') is None):
+                    return Response('Required properties require a default value.', status=status.HTTP_400_BAD_REQUEST)
             create_table(schema, entity.validated_data)
             organization_id = get_organization_id(request)
             new_entity = Entity.objects.create(entity_name=entity.validated_data['entity_name'], organization_id=organization_id)

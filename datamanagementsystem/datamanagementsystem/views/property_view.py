@@ -12,10 +12,12 @@ from ..helpers.schema_helper import get_tenant_schema
 from rest_framework.decorators import action
 from ..models.entity import Entity
 from ..models.property import Property
+from rest_framework.permissions import IsAuthenticated
 
 
 class PropertyAPIView(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(request_body=PropertySerializer)
     @action(detail=False, methods=['post'])
@@ -23,7 +25,11 @@ class PropertyAPIView(viewsets.ViewSet):
         entity_property = PropertySerializer(data=request.data)
         schema = get_tenant_schema(request)
         if(entity_property.is_valid()):
-            add_column(schema, entity_property.validated_data)
+            data = entity_property.validated_data
+            if(data['required'] and data.get('default_value') is None):
+                return Response('Required properties require a default value.', status=status.HTTP_400_BAD_REQUEST)
+            entity = Entity.objects.get(pk=entity_property.validated_data['entity_id'])
+            add_column(schema, entity.entity_name, data)
             entity_property.save()
             return Response(entity_property.validated_data, status=status.HTTP_201_CREATED)
         return Response(entity_property.validated_datas, status=status.HTTP_400_BAD_REQUEST)
@@ -50,9 +56,11 @@ class PropertyAPIView(viewsets.ViewSet):
         schema = get_tenant_schema(request)
         if(update_property_type_model.is_valid()):
             data = update_property_type_model.validated_data
+            if(data['required'] and data.get('default_value') is None):
+                return Response('Required properties require a default value.', status=status.HTTP_400_BAD_REQUEST)
             entity = Entity.objects.get(pk=data['entity_id'])
             db_property = Property.objects.get(pk=data['property_id'])
-            update_column_type(schema, entity.entity_name, db_property.property_name, data['new_property_type'])
+            update_column_type(schema, entity.entity_name, db_property.property_name, data['new_property_type'], data['required'], data['default_value'])
             db_property.property_type = data['new_property_type']
             db_property.save()
             return Response(None, status=status.HTTP_200_OK)
