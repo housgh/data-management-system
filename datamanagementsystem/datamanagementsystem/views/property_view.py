@@ -52,13 +52,8 @@ class PropertyAPIView(viewsets.ViewSet):
             return Response(None, status=status.HTTP_200_OK)
         return Response(update_property_type_model.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @swagger_auto_schema(request_body=DeletePropertySerializer)
-    @action(detail=False, methods=['delete'])
-    def delete(self, request):
-        renameEntityModel = DeletePropertySerializer(data=request.data)
-        if(renameEntityModel.is_valid()):
-            schema = get_tenant_schema(request)
-            validated_data = renameEntityModel.validated_data
-            property_service.delete(schema, validated_data)
-            return Response(None, status=status.HTTP_200_OK)
-        return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=['delete'], url_path='<int:entity_id>/<int:id>')
+    def delete(self, request, entity_id, id):
+        schema = get_tenant_schema(request)
+        property_service.delete(schema, entity_id, id)
+        return Response(None, status=status.HTTP_200_OK)

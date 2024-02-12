@@ -14,7 +14,7 @@ class PropertyService:
     def rename(self, schema, validated_data):
         entity = Entity.objects.get(pk=validated_data['entity_id'])
         db_property = Property.objects.get(pk=validated_data['property_id'])
-        update_column_name(schema, entity.entity_name, db_property.property_name, data['new_property_name'])
+        update_column_name(schema, entity.entity_name, db_property.property_name, validated_data['new_property_name'])
         db_property.property_name = validated_data['new_property_name']
         db_property.save()
 
@@ -27,15 +27,15 @@ class PropertyService:
             schema, 
             entity.entity_name, 
             db_property.property_name, 
-            validated_data['new_property_type'], 
+            validated_data['new_property_type_id'], 
             validated_data['required'], 
-            validated_data['default_value'])
+            validated_data.get('default_value'))
         
-        db_property.property_type = validated_data['new_property_type']
+        db_property.property_type_id = validated_data['new_property_type_id']
         db_property.save()
 
-    def delete(self, schema, validated_data):
-        entity = Entity.objects.get(pk=validated_data['entity_id'])
-        db_property = Property.objects.get(pk=validated_data['property_id'])
+    def delete(self, schema, entity_id, id):
+        entity = Entity.objects.get(pk=entity_id)
+        db_property = Property.objects.get(pk=id)
         remove_column(schema, entity.entity_name, db_property.property_name)
         db_property.delete()

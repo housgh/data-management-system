@@ -27,7 +27,7 @@ from rest_framework_simplejwt.views import (
 from datamanagementsystem.views.user_registeration import UserRegistrationAPIView
 from datamanagementsystem.views.organization_view import OrganizationAPIView
 from datamanagementsystem.views.token_view import TokenView
-from datamanagementsystem.views.entity_view import EntityAPIView, get_entity
+from datamanagementsystem.views.entity_view import EntityAPIView, get_entity, delete_entity
 from datamanagementsystem.views.property_view import PropertyAPIView
 from datamanagementsystem.views.data_view import get_all_data, get_single, insert_data, delete_single, delete_all, update_data
 from rest_framework.routers import DefaultRouter
@@ -63,6 +63,7 @@ urlpatterns = [
 
     # Entities
     path('api/entity/<int:pk>', get_entity),
+    path('api/entity/delete/<int:entity_id>', delete_entity),
     path('api/entity', EntityAPIView.as_view(), name="entity"),
     path('api/entity/', include(router.urls)),
 

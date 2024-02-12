@@ -1,4 +1,5 @@
 from django.db import connection
+from django.core.exceptions import ObjectDoesNotExist
 
 
 property_types = {
@@ -45,7 +46,7 @@ def add_column(schema_name, table_name, column):
     if(column['required']):
         query = query + ' not null default %s'
         params.append(column['default_value'])
-    execute_sql(query *params)
+    execute_sql(query, *params)
 
 def remove_column(schema_name, table_name, column_name):
     execute_sql(f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" DROP COLUMN "{sanitize(column_name)}"')
@@ -57,10 +58,11 @@ def update_column_type(schema_name, table_name, column_name, new_column_type_id,
     params = []
     query = f'ALTER TABLE "{sanitize(schema_name)}"."{sanitize(table_name)}" ALTER COLUMN "{sanitize(column_name)}" TYPE {property_types[str(new_column_type_id)]}'
     if required:
-        query += ' not null default %s'
+        query += f', ALTER COLUMN {sanitize(column_name)} SET NOT NULL'
+        query += f', ALTER COLUMN {sanitize(column_name)} SET DEFAULT %s'
         params.append(default_value)
     else:
-        query += ' null'
+        query += f', ALTER COLUMN {sanitize(column_name)} DROP NOT NULL'
     execute_sql(query, *params)
 
 def get_records(schema_name, table_name, skip=None, take=None, search_text=None):
@@ -71,10 +73,8 @@ def get_records(schema_name, table_name, skip=None, take=None, search_text=None)
         params.append(f'%{search_text}%')
     if skip is not None: 
         query += f' OFFSET {skip}'
-        params.append(skip)
     if take is not None: 
         query += f' LIMIT {take}'
-        params.append(take)
     return execute_get_all(query, *params)
 
 def get_record(schema_name, table_name, id):
@@ -131,6 +131,8 @@ def execute_get_all(query, *arguments):
 def execute_get_one(query, *arguments):
     with connection.cursor() as cursor:
         cursor.execute(query, arguments)
+        if cursor.rowcount == 0 or cursor.description is None:
+            raise ObjectDoesNotExist()
         columns = [col[0] for col in cursor.description]
         return dict(zip(columns, cursor.fetchone()))
     

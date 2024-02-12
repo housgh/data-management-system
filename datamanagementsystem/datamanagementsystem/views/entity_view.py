@@ -22,7 +22,15 @@ entity_service = EntityService()
 def get_entity(request, pk, format=None):
     entity_object = entity_service.get(pk)
     entity = GetEntitySerializer(entity_object)
-    return Response(entity.validated_data, status=status.HTTP_200_OK)
+    return Response(entity.data, status=status.HTTP_200_OK)
+
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_entity(request, entity_id):
+    schema = get_tenant_schema(request)
+    entity_service.delete(schema, entity_id)
+    return Response(None, status=status.HTTP_200_OK)
 
 class EntityAPIView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -42,7 +50,7 @@ class EntityAPIView(APIView):
             organization_id = get_organization_id(request)
             schema = get_tenant_schema(request)
             entity_service.add(organization_id, schema, entity.validated_data)
-            return Response(entity.validated_data, status=status.HTTP_201_CREATED)
+            return Response(entity.data, status=status.HTTP_201_CREATED)
         return Response(entity.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @swagger_auto_schema(request_body=RenameEntitySerializer)
@@ -54,15 +62,5 @@ class EntityAPIView(APIView):
             entity_service.rename(schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
         return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @swagger_auto_schema(request_body=DeleteEntitySerializer)
-    def delete(self, request):
-        deleteEntityModel = DeleteEntitySerializer(data=request.data)
-        schema = get_tenant_schema(request)
-        if(deleteEntityModel.is_valid()):
-            validated_data = deleteEntityModel.validated_data
-            entity_service.delete(schema, validated_data)
-            return Response(None, status=status.HTTP_200_OK)
-        return Response(deleteEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
 
             

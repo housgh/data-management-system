@@ -11,10 +11,11 @@ class EntityService:
     
     def get_all(self, organization_id, search_text):
         if(search_text is not None):
-            return Entity.objects.prefetch_related('properties').annotate(
-                search=SearchVector('entity_name', 'properties__property_name')
-                ).filter(search=search_text, organization_id=organization_id).all()
-        return Entity.objects.prefetch_related('properties').all()
+           entity_name_filter = Entity.objects.filter(entity_name__icontains=search_text)
+           properties_name_filter = Entity.objects.prefetch_related('properties').filter(properties__property_name__icontains=search_text)
+           filter = entity_name_filter | properties_name_filter
+           return filter.distinct().all()
+        return Entity.objects.prefetch_related('properties').filter(organization_id=organization_id).all()
     
     def add(self, organization_id, schema, validated_data):
         for new_property in validated_data['properties']:
@@ -31,7 +32,7 @@ class EntityService:
         entity.entity_name = validated_data['new_entity_name']
         entity.save()
 
-    def delete(self, schema, validated_data):
-        entity = Entity.objects.get(pk=validated_data['entity_id'])
+    def delete(self, schema, entity_id):
+        entity = Entity.objects.get(pk=entity_id)
         delete_table(schema, entity.entity_name)
         entity.delete()

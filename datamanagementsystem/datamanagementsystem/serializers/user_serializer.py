@@ -13,7 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('username', 'password', 'email', 'first_name', 'last_name', 'organization_id')
 
     def create(self, validated_data):
-        print(validated_data['organization_id'])
+        if not Organization.objects.filter(pk=validated_data['organization_id']).exists():
+            raise Organization.DoesNotExist
         user = User.objects.create_user(
             username = validated_data['username'],
             password = validated_data['password'],
@@ -21,5 +22,5 @@ class UserSerializer(serializers.ModelSerializer):
             first_name = validated_data['first_name'],
             last_name = validated_data['last_name']
         )
-        userDetails = UserDetails.objects.create(user=user, organization_id=validated_data['organization_id'])
+        UserDetails.objects.create(user=user, organization_id=validated_data['organization_id'])
         return user

@@ -2,7 +2,6 @@
 from rest_framework import serializers
 from .property_serializer import CreatePropertySerializer, PropertySerializer
 from ..models.entity import Entity
-from .organization_serializer import OrganizationSerializer
 
 class EntitySerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
