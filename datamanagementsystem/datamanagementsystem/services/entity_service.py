@@ -5,8 +5,8 @@ from ..models.property import Property
 from ..exceptions.missing_default_value_exception import MissingDefaultValueException
 
 class EntityService:
-    def get(self, id):
-        entity_object = Entity.objects.prefetch_related('properties').get(pk=id)
+    def get(self, organization_id, id):
+        entity_object = Entity.objects.prefetch_related('properties').get(pk=id, organization_id=organization_id)
         return entity_object
     
     def get_all(self, organization_id, search_text):
@@ -14,7 +14,7 @@ class EntityService:
            entity_name_filter = Entity.objects.filter(entity_name__icontains=search_text)
            properties_name_filter = Entity.objects.prefetch_related('properties').filter(properties__property_name__icontains=search_text)
            filter = entity_name_filter | properties_name_filter
-           return filter.distinct().all()
+           return filter.filter(organization_id=organization_id).distinct().all()
         return Entity.objects.prefetch_related('properties').filter(organization_id=organization_id).all()
     
     def add(self, organization_id, schema, validated_data):
@@ -26,13 +26,13 @@ class EntityService:
         for new_property in validated_data['properties']:
             Property.objects.create(entity=new_entity, **new_property)
 
-    def rename(self, schema, validated_data):
-        entity = Entity.objects.get(pk=validated_data['entity_id'])
+    def rename(self, organization_id, schema, validated_data):
+        entity = Entity.objects.get(pk=validated_data['entity_id'], organization_id=organization_id)
         rename_table(schema, entity.entity_name, validated_data['new_entity_name'])
         entity.entity_name = validated_data['new_entity_name']
         entity.save()
 
-    def delete(self, schema, entity_id):
-        entity = Entity.objects.get(pk=entity_id)
+    def delete(self, organization_id, schema, entity_id):
+        entity = Entity.objects.get(pk=entity_id, organization_id=organization_id)
         delete_table(schema, entity.entity_name)
         entity.delete()

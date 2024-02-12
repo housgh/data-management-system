@@ -5,9 +5,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from ..serializers.property_serializer import (
     PropertySerializer, 
     UpdatePropertyNameSerializer, 
-    DeletePropertySerializer, 
     UpdatePropertyTypeSerializer)
-from ..helpers.schema_helper import get_tenant_schema
+from ..helpers.schema_helper import get_tenant_schema, get_organization_id
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from ..services.property_service import PropertyService
@@ -24,8 +23,9 @@ class PropertyAPIView(viewsets.ViewSet):
         entity_property = PropertySerializer(data=request.data)
         if(entity_property.is_valid()):
             schema  = get_tenant_schema(request)
+            organization_id = get_organization_id(request)
             validated_data = entity_property.validated_data
-            property_service.add(schema, validated_data)
+            property_service.add(organization_id, schema, validated_data)
             entity_property.save()
             return Response(entity_property.validated_data, status=status.HTTP_201_CREATED)
         return Response(entity_property.validated_datas, status=status.HTTP_400_BAD_REQUEST)
@@ -36,8 +36,9 @@ class PropertyAPIView(viewsets.ViewSet):
         update_property_name_model = UpdatePropertyNameSerializer(data=request.data)
         if(update_property_name_model.is_valid()):
             schema = get_tenant_schema(request)
+            organization_id = get_organization_id(request)
             validated_data = update_property_name_model.validated_data
-            property_service.rename(schema, validated_data)
+            property_service.rename(organization_id, schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
         return Response(update_property_name_model.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -47,13 +48,15 @@ class PropertyAPIView(viewsets.ViewSet):
         update_property_type_model = UpdatePropertyTypeSerializer(data=request.data)
         if(update_property_type_model.is_valid()):
             schema = get_tenant_schema(request)
+            organization_id = get_organization_id(request)
             validated_data = update_property_type_model.validated_data
-            property_service.change_type(schema, validated_data)
+            property_service.change_type(organization_id, schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
         return Response(update_property_type_model.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['delete'], url_path='<int:entity_id>/<int:id>')
+    @action(detail=False, methods=['delete'], url_path=r'(?P<entity_id>\w+)/(?P<id>\w+)')
     def delete(self, request, entity_id, id):
         schema = get_tenant_schema(request)
-        property_service.delete(schema, entity_id, id)
+        organization_id = get_organization_id(request)
+        property_service.delete(organization_id, schema, entity_id, id)
         return Response(None, status=status.HTTP_200_OK)

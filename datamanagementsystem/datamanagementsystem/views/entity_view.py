@@ -20,7 +20,8 @@ entity_service = EntityService()
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_entity(request, pk, format=None):
-    entity_object = entity_service.get(pk)
+    organization_id = get_organization_id(request)
+    entity_object = entity_service.get(organization_id, pk)
     entity = GetEntitySerializer(entity_object)
     return Response(entity.data, status=status.HTTP_200_OK)
 
@@ -29,7 +30,8 @@ def get_entity(request, pk, format=None):
 @permission_classes([IsAuthenticated])
 def delete_entity(request, entity_id):
     schema = get_tenant_schema(request)
-    entity_service.delete(schema, entity_id)
+    organization_id = get_organization_id(request)
+    entity_service.delete(organization_id, schema, entity_id)
     return Response(None, status=status.HTTP_200_OK)
 
 class EntityAPIView(APIView):
@@ -57,9 +59,10 @@ class EntityAPIView(APIView):
     def put(self, request):
         renameEntityModel = RenameEntitySerializer(data=request.data)
         schema = get_tenant_schema(request)
+        organization_id = get_organization_id(request)
         if(renameEntityModel.is_valid()):
             validated_data = renameEntityModel.validated_data
-            entity_service.rename(schema, validated_data)
+            entity_service.rename(organization_id, schema, validated_data)
             return Response(None, status=status.HTTP_200_OK)
         return Response(renameEntityModel.errors, status=status.HTTP_400_BAD_REQUEST)
 

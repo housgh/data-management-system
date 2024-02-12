@@ -5,7 +5,7 @@ from ..serializers.data_serializer import DataSerializer, UpdateDataSerializer
 from drf_yasg import openapi
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from ..helpers.schema_helper import get_tenant_schema
+from ..helpers.schema_helper import get_tenant_schema, get_organization_id
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from ..services.data_service import DataService
 
@@ -33,7 +33,8 @@ def get_all_data(request, entity_id):
     take = request.query_params.get('take')
     search_text = request.query_params.get('search_text')
     schema = get_tenant_schema(request)
-    data = data_service.get_all(schema, entity_id, skip, take, search_text)
+    organization_id = get_organization_id(request)
+    data = data_service.get_all(organization_id, schema, entity_id, skip, take, search_text)
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
@@ -41,7 +42,8 @@ def get_all_data(request, entity_id):
 @permission_classes([IsAuthenticated])
 def get_single(request, entity_id, id):
     schema = get_tenant_schema(request)
-    data = data_service.get(schema, entity_id, id)
+    organization_id = get_organization_id(request)
+    data = data_service.get(organization_id, schema, entity_id, id)
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
@@ -49,7 +51,8 @@ def get_single(request, entity_id, id):
 @permission_classes([IsAuthenticated])
 def delete_single(request, entity_id, id):
     schema = get_tenant_schema(request)
-    data_service.delete(schema, entity_id, id)
+    organization_id = get_organization_id(request)
+    data_service.delete(organization_id, schema, entity_id, id)
     return Response(status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
@@ -57,7 +60,8 @@ def delete_single(request, entity_id, id):
 @permission_classes([IsAuthenticated])
 def delete_all(request, entity_id):
     schema = get_tenant_schema(request)
-    data_service.delete_all(schema, entity_id)
+    organization_id = get_organization_id(request)
+    data_service.delete_all(organization_id, schema, entity_id)
     return Response(status=status.HTTP_200_OK)
 
 @swagger_auto_schema(request_body=DataSerializer, method='POST')
@@ -68,7 +72,8 @@ def insert_data(request, entity_id):
     body = DataSerializer(data=request.data)
     if body.is_valid():
         schema = get_tenant_schema(request)
-        data_service.add(schema, entity_id, body.validated_data)
+        organization_id = get_organization_id(request)
+        data_service.add(organization_id, schema, entity_id, body.validated_data)
         return Response(body.validated_data, status=status.HTTP_201_CREATED)
     return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -80,6 +85,7 @@ def update_data(request, entity_id, id):
     body = UpdateDataSerializer(data=request.data)
     if body.is_valid():
         schema = get_tenant_schema(request)
-        data_service.update(schema, entity_id, id, body.validated_data)
+        organization_id = get_organization_id(request)
+        data_service.update(organization_id, schema, entity_id, id, body.validated_data)
         return Response(body.validated_data, status=status.HTTP_201_CREATED)
     return Response(status=status.HTTP_400_BAD_REQUEST)
